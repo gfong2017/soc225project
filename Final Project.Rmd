@@ -1,13 +1,13 @@
 ---
-title: "Untitled"
+title: "Covid-19 Reporting"
 author: "BB Group 5"
-date: "6/1/2020"
 output: html_document
 ---
 
 ```{r}
 library(tidyverse)
 #read-in data for the 20% infections
+
 covid_hospital <- read.csv("data/Covid-report-20.csv")
 
 #deleting the unused first row
@@ -17,20 +17,63 @@ covid_hospital<- covid_hospital[-1,]
 hospital_data <- covid_hospital %>% 
   mutate(
     HRR = as.character(HRR),
-    Total.Hospital.Beds = as.numeric(Total.Hospital.Beds)
+    Total.Hospital.Beds = as.numeric(
+      as.character(
+        gsub(",", "", Total.Hospital.Beds)
+      )
+      )
     ) %>%
   #making a seperate city and state column
-  separate(HRR,c("City", "State"), sep = ", ") %>%
-  select(Total.Hospital.Beds, State)
+  separate(HRR,c("City", "state"), sep = ", ") %>%
+  select(Total.Hospital.Beds, state) %>%
+  group_by(state)%>%
+  summarize(total_bed = sum(Total.Hospital.Beds))
+hospital_data <- hospital_data[-52, ]
 
 #Plot 1: available beds per state
 plot_1<- hospital_data %>%
-  group_by(State)%>%
-  summarize(total_bed = sum(Total.Hospital.Beds)) %>%
-  ggplot(aes(x= State, y = total_bed))+ 
+  ggplot(aes(x= state, y = total_bed))+ 
   geom_col()+
   labs(title = "Number of Beds Total per State", y= "Total Number Beds") +
   theme(axis.text.x = element_text(angle = 90))
 plot_1
 
+```
+
+```{r}
+#set up for plot 2
+library(dplyr)
+library(scales)
+covid <- read.csv("data/US_State_Covid_daily.csv")
+
+# set up data for plot with total cases and state
+covid_report <- covid %>%
+  select(state, positiveIncrease)%>%
+  mutate(state = as.character(state))%>%
+  na.omit%>%
+  group_by(state)%>%
+  summarise(total_cases = sum(positiveIncrease))
+
+# removing rows that are US territories
+covid_report <- covid_report[-4, ]
+covid_report <- covid_report[-12, ]
+covid_report <- covid_report[-26, ]
+covid_report <- covid_report[-40, ]
+covid_report <- covid_report[-47, ]
+
+#joining data sets 
+covid_full <- left_join(covid_report, hospital_data) 
+
+#plot for total cases vs total bed
+plot2 <- covid_full %>%
+  ggplot(aes(x = total_cases, y=total_bed))+
+  geom_point(alpha = 0.5)+
+  xlab("Total Number of Cases per State")+
+  ylab("Total Beds per State")+
+  geom_smooth()+
+  labs(title = "COVID-19 in the U.S.: Total Hospital Beds vs. Total Cases") + 
+  scale_x_continuous(labels = comma) +
+  scale_y_continuous(labels = comma)
+
+plot2
 ```
