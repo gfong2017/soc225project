@@ -1,0 +1,36 @@
+---
+title: "Untitled"
+author: "BB Group 5"
+date: "6/1/2020"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+#read-in data for the 20% infections
+covid_hospital <- read.csv("data/Covid-report-20.csv")
+
+#deleting the unused first row
+covid_hospital<- covid_hospital[-1,]
+
+#changing the converting variables from factors to intended variable type
+hospital_data <- covid_hospital %>% 
+  mutate(
+    HRR = as.character(HRR),
+    Total.Hospital.Beds = as.numeric(Total.Hospital.Beds)
+    ) %>%
+  #making a seperate city and state column
+  separate(HRR,c("City", "State"), sep = ", ") %>%
+  select(Total.Hospital.Beds, State)
+
+#Plot 1: available beds per state
+plot_1<- hospital_data %>%
+  group_by(State)%>%
+  summarize(total_bed = sum(Total.Hospital.Beds)) %>%
+  ggplot(aes(x= State, y = total_bed))+ 
+  geom_col()+
+  labs(title = "Number of Beds Total per State", y= "Total Number Beds") +
+  theme(axis.text.x = element_text(angle = 90))
+plot_1
+
+```
